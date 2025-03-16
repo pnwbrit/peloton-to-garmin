@@ -12,7 +12,7 @@ public interface IAnnualChallengeService
 
 public class AnnualChallengeService : IAnnualChallengeService
 {
-	private const string AnnualChallengeId = "5101dfaa50d441d682a432acd313c706";
+	private const string AnnualChallengeId = "fa65351309d6476a8aadcc53902d78ec";
 
 	private IPelotonApi _pelotonApi;
 
@@ -44,9 +44,13 @@ public class AnnualChallengeService : IAnnualChallengeService
 		var now = DateTime.UtcNow;
 		var startTimeUtc = DateTimeOffset.FromUnixTimeSeconds(annualChallengeProgressDetail.Challenge_Summary.Start_Time).UtcDateTime;
 		var endTimeUtc = DateTimeOffset.FromUnixTimeSeconds(annualChallengeProgressDetail.Challenge_Summary.End_Time).UtcDateTime;
+		var elapsedTime = now - startTimeUtc;
+		var elapsedDays = Math.Ceiling(elapsedTime.TotalDays);
 
 		result.Result.HasJoined = true;
 		result.Result.EarnedMinutes = progress.Metric_Value;
+		result.Result.CurrentDailyPace = progress.Metric_Value / elapsedDays;
+		result.Result.CurrentWeeklyPace = result.Result.CurrentDailyPace * 7;
 		result.Result.Tiers = tiers.Where(t => t.Metric_Value > 0).Select(t => 
 		{
 			var requiredMinutes = t.Metric_Value;
@@ -65,6 +69,8 @@ public class AnnualChallengeService : IAnnualChallengeService
 				MinutesAheadOfPace = onTrackDetails.MinutesBehindPace * -1,
 				MinutesNeededPerDay = onTrackDetails.MinutesNeededPerDay,
 				MinutesNeededPerWeek = onTrackDetails.MinutesNeededPerDay * 7,
+				MinutesNeededPerDayToFinishOnTime = onTrackDetails.MinutesNeededPerDayToFinishOnTime,
+				MinutesNeededPerWeekToFinishOnTime = onTrackDetails.MinutesNeededPerDayToFinishOnTime * 7
 			};
 		}).ToList();
 
@@ -83,6 +89,9 @@ public class AnnualChallengeService : IAnnualChallengeService
 
 		var neededMinutesToBeOnTrack = elapsedDays * minutesNeededPerDay;
 
+		var remainingDays = Math.Ceiling((endTimeUtc - now).TotalDays);
+		var minutesNeededPerDayToFinishOnTime = (requiredMinutes - earnedMinutes) / remainingDays;
+
 		return new OnTrackDetails()
 		{
 			IsOnTrackToEarnByEndOfYear = earnedMinutes >= neededMinutesToBeOnTrack,
@@ -90,6 +99,7 @@ public class AnnualChallengeService : IAnnualChallengeService
 			MinutesNeededPerDay = minutesNeededPerDay,
 			HasEarned = earnedMinutes >= requiredMinutes,
 			PercentComplete = earnedMinutes / requiredMinutes,
+			MinutesNeededPerDayToFinishOnTime = minutesNeededPerDayToFinishOnTime
 		};
 	}
 
@@ -100,5 +110,6 @@ public class AnnualChallengeService : IAnnualChallengeService
 		public double MinutesNeededPerDay { get; init; }
 		public bool HasEarned { get; init; }
 		public double PercentComplete { get; init; }
+		public double MinutesNeededPerDayToFinishOnTime { get; init; }
 	}
 }

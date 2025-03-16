@@ -31,6 +31,26 @@ public class WorkoutHelperTests
 		return WorkoutHelper.GetTitle(workout, new Format());
 	}
 
+	[TestCase("My Title", "é", ExpectedResult = "My_Title_with_é")]
+	[TestCase("My Title", "ä", ExpectedResult = "My_Title_with_ä")]
+	[TestCase("My Title", "&", ExpectedResult = "My_Title_with_&")]
+	public string GetTitle_Should_Handle_SpecialChars(string title, string instructor)
+	{
+		var workout = new Workout()
+		{
+			Ride = new Ride()
+			{
+				Title = title,
+				Instructor = new Instructor()
+				{
+					Name = instructor
+				}
+			}
+		};
+
+		return WorkoutHelper.GetTitle(workout, new Format());
+	}
+
 	[Test]
 	public void GetTitle_NullRide_ShouldReturn_RideId()
 	{
@@ -75,7 +95,7 @@ public class WorkoutHelperTests
 	}
 
 	[Test]
-	public void GetTitle_NullPrefix_ShouldReturn_EmptyPrefix()
+	public void GetTitle_NullTemplate_ShouldReturn_DefaultTemplate()
 	{
 		var workout = new Workout()
 		{
@@ -91,11 +111,11 @@ public class WorkoutHelperTests
 	}
 
 	[Test]
-	public void GetTitle_With_Prefix_ShouldReturn_Title_With_Prefix()
+	public void GetTitle_With_Template_ShouldReturn_TemplateAppliedToTitle()
 	{
 		var format = new Format()
 		{
-			WorkoutTitlePrefix = "Peloton - "
+			WorkoutTitleTemplate = "{{PelotonInstructorName}} - {{PelotonWorkoutTitle}}"
 		};
 
 		var workout = new Workout()
@@ -108,6 +128,6 @@ public class WorkoutHelperTests
 		};
 
 		var title = WorkoutHelper.GetTitle(workout, format);
-		title.Should().Be("Peloton_-_My_Title_with_Instructor");
+		title.Should().Be("Instructor_-_My_Title");
 	}
 }
